@@ -1,4 +1,4 @@
-defmodule SSHEx do
+defmodule SSHEx.Mixfile do
   use Mix.Project
 
   def project do
