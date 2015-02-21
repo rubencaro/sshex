@@ -43,8 +43,14 @@ status code too, you can use `run/4` like this:
 You will be reusing the same SSH connection all over.
 
 
+## Alternative keys
+
+To use alternative keys you should save them somewhere on disk and then set
+the `:user_dir` option for `:ssh.connect/4`. See
+[ssh library docs](http://www.erlang.org/doc/man/ssh.html) for more options.
+
+
 ## TODOs
 
 * Add testing using [meck](https://github.com/eproxus/meck)
 * Add tunnelling helpers
-* Support custom key
