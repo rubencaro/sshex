@@ -80,24 +80,22 @@ defmodule SSHEx do
   end
 
   # Parse ugly response
-  defp receive_and_parse_response(channel, timeout, data, status, closed) do
+  #
+  defp receive_and_parse_response(chn, tout, data, status, closed) do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
-      timeout -> { :error, :taimaut }
+      tout -> { :error, :taimaut }
     end
 
     case response do
-      {:data, ^channel, _, new_data} -> {:loop, {channel, timeout, data <> new_data, status, closed}}
-      {:eof, ^channel} -> {:loop, {channel, timeout, data, status, closed}}
-      {:exit_signal, ^channel, _, _} -> {:loop, {channel, timeout, data, status, closed}}
-      {:exit_status, ^channel, new_status} -> {:loop, {channel, timeout, data, new_status, closed}}
-      {:closed, ^channel} -> {:loop, {channel, timeout, data, status, true}}
+      {:data, ^chn, _, new_data} ->       {:loop, {chn, tout, data <> new_data, status, closed}}
+      {:eof, ^chn} ->                     {:loop, {chn, tout, data, status, closed}}
+      {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, data, status, closed}}
+      {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, data, new_status, closed}}
+      {:closed, ^chn} ->                  {:loop, {chn, tout, data, status, true}}
       x -> x
     end
   end
 
 end
-
-
-
