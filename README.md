@@ -53,4 +53,4 @@ the `:user_dir` option for `:ssh.connect/4`. See
 ## TODOs
 
 * Add testing using [meck](https://github.com/eproxus/meck)
-* Add tunnelling helpers
+* Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
