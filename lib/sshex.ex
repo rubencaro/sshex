@@ -80,20 +80,20 @@ defmodule SSHEx do
   end
 
   # Parse ugly response
-  defp receive_and_parse_response(channel, timeout, stdout, stderr, status, closed) do
+  defp receive_and_parse_response(chn, tout, stdout, stderr, status, closed) do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
-      timeout -> { :error, :taimaut }
+      tout -> { :error, :taimaut }
     end
 
     case response do
-      {:data, ^channel, 1, new_data} -> {:loop, {channel, timeout, stdout, stderr <> new_data, status, closed}}
-      {:data, ^channel, 0, new_data} -> {:loop, {channel, timeout, stdout <> new_data, stderr, status, closed}}
-      {:eof, ^channel} -> {:loop, {channel, timeout, stdout, stderr, status, closed}}
-      {:exit_signal, ^channel, _, _} -> {:loop, {channel, timeout, stdout, stderr, status, closed}}
-      {:exit_status, ^channel, new_status} -> {:loop, {channel, timeout, stdout, stderr, new_status, closed}}
-      {:closed, ^channel} -> {:loop, {channel, timeout, stdout, stderr, status, true}}
+      {:data, ^chn, 1, new_data} ->       {:loop, {chn, tout, stdout, stderr <> new_data, status, closed}}
+      {:data, ^chn, 0, new_data} ->       {:loop, {chn, tout, stdout <> new_data, stderr, status, closed}}
+      {:eof, ^chn} ->                     {:loop, {chn, tout, stdout, stderr, status, closed}}
+      {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
+      {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
+      {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
       x -> x
     end
   end
