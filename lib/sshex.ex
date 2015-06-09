@@ -63,37 +63,37 @@ defmodule SSHEx do
 
   # Loop until all data is received. Return read data and the exit_status.
   #
-  defp get_response(channel, timeout, data \\ "", status \\ nil, closed \\ false) do
+  defp get_response(channel, timeout, stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
 
     # if we got status and closed, then we are done
     parsed = case {status, closed} do
-      {st, true} when not is_nil(st) -> {:ok, data, status}
-      _ -> receive_and_parse_response(channel, timeout, data, status, closed)
+      {st, true} when not is_nil(st) -> {:ok, stdout, stderr, status}
+      _ -> receive_and_parse_response(channel, timeout, stdout, stderr, status, closed)
     end
 
     # tail recursion
     case parsed do
-      {:loop, {channel, timeout, data, status, closed}} -> # loop again, still things missing
-        get_response(channel, timeout, data, status, closed)
+      {:loop, {channel, timeout, stdout, stderr, status, closed}} -> # loop again, still things missing
+        get_response(channel, timeout, stdout, stderr, status, closed)
       x -> x
     end
   end
 
   # Parse ugly response
-  #
-  defp receive_and_parse_response(chn, tout, data, status, closed) do
+  defp receive_and_parse_response(channel, timeout, stdout, stderr, status, closed) do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
-      tout -> { :error, :taimaut }
+      timeout -> { :error, :taimaut }
     end
 
     case response do
-      {:data, ^chn, _, new_data} ->       {:loop, {chn, tout, data <> new_data, status, closed}}
-      {:eof, ^chn} ->                     {:loop, {chn, tout, data, status, closed}}
-      {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, data, status, closed}}
-      {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, data, new_status, closed}}
-      {:closed, ^chn} ->                  {:loop, {chn, tout, data, status, true}}
+      {:data, ^channel, 1, new_data} -> {:loop, {channel, timeout, stdout, stderr <> new_data, status, closed}}
+      {:data, ^channel, 0, new_data} -> {:loop, {channel, timeout, stdout <> new_data, stderr, status, closed}}
+      {:eof, ^channel} -> {:loop, {channel, timeout, stdout, stderr, status, closed}}
+      {:exit_signal, ^channel, _, _} -> {:loop, {channel, timeout, stdout, stderr, status, closed}}
+      {:exit_status, ^channel, new_status} -> {:loop, {channel, timeout, stdout, stderr, new_status, closed}}
+      {:closed, ^channel} -> {:loop, {channel, timeout, stdout, stderr, status, true}}
       x -> x
     end
   end
