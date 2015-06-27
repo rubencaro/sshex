@@ -16,6 +16,6 @@ defmodule SSHEx.Mixfile do
   defp package do
     [contributors: ["Rubén Caro"],
      licenses: ["MIT"],
-     links: %{github: "https://github.com/elpulgardelpanda/sshex"}]
+     links: %{github: "https://github.com/rubencaro/sshex"}]
   end
 end
