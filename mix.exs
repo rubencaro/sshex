@@ -3,7 +3,7 @@ defmodule SSHEx.Mixfile do
 
   def project do
     [app: :sshex,
-     version: "1.0.0",
+     version: "1.1.0",
      elixir: "~> 1.0.0",
      package: package,
      description: "Simple SSH helpers for Elixir" ]

@@ -14,7 +14,7 @@ raise freely.
 
 ## Use
 
-Just add `{:sshex, "1.0.0"}` to your deps on `mix.exs`.
+Just add `{:sshex, "1.1.0"}` to your deps on `mix.exs`.
 
 Then assuming `:ssh` application is already started (hence it is listed on deps),
 you should acquire an SSH connection using `:ssh.connect/4` like this:
@@ -40,6 +40,14 @@ status code too, you can use `run/4` like this:
     {:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
 ```
 
+You can pass the option `:separate_streams` to get separated stdout and stderr.
+Like this:
+
+```elixir
+    {:ok, stdout, stderr, 2} = SSHEx.run conn, 'ls /nonexisting/path',
+                                     5000, 5000, [separate_streams: true]
+```
+
 You will be reusing the same SSH connection all over.
 
 
@@ -52,5 +60,16 @@ the `:user_dir` option for `:ssh.connect/4`. See
 
 ## TODOs
 
+* Put every optional parameter under a unique Keyword list
 * Add testing using [meck](https://github.com/eproxus/meck)
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
+
+## Changelog
+
+### 1.1
+
+* Add support for separate stdout/stderr responses.
+
+### 1.0
+
+* Initial release
