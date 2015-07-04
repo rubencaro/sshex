@@ -1,5 +1,5 @@
 # SSHEx
-
+[![Build Status](https://travis-ci.org/rubencaro/sshex.svg?branch=master)](https://travis-ci.org/rubencaro/sshex)
 [![Hex Version](http://img.shields.io/hexpm/v/sshex.svg?style=flat)](https://hex.pm/packages/sshex)
 
 Simple SSH helpers for Elixir.
