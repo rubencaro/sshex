@@ -61,7 +61,6 @@ the `:user_dir` option for `:ssh.connect/4`. See
 ## TODOs
 
 * Put every optional parameter under a unique Keyword list
-* Add testing using [meck](https://github.com/eproxus/meck)
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
 
 ## Changelog

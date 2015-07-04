@@ -6,6 +6,7 @@ defmodule SSHEx.Mixfile do
      version: "1.1.0",
      elixir: "~> 1.0.0",
      package: package,
+     deps: deps,
      description: "Simple SSH helpers for Elixir" ]
   end
 
@@ -17,5 +18,9 @@ defmodule SSHEx.Mixfile do
     [contributors: ["Rubén Caro"],
      licenses: ["MIT"],
      links: %{github: "https://github.com/rubencaro/sshex"}]
+  end
+
+  defp deps do
+    [ {:meck, "~> 0.8.3", only: [:dev,:test]} ]
   end
 end
