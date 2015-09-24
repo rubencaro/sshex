@@ -10,7 +10,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Use
 
-Just add `{:sshex, "1.1.0"}` to your deps on `mix.exs`.
+Just add `{:sshex, "1.2.0"}` to your deps on `mix.exs`.
 
 Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `:ssh.connect/4` like this:
 
@@ -33,7 +33,7 @@ This is meant to run commands which you don't care about the return code. `cmd!/
     {:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
 ```
 
-If `:ssh` returns any error (i.e. `{:error, reason}`), `SSHEx` will raise a `RuntimeError` with the message `"{:error, reason}"`. No attempt to ease the pain.
+If `:ssh` returns any error (i.e. `{:error, reason}`, `:failure`, etc.), `SSHEx` will raise a `RuntimeError` with the message containing an `inspect` of whichever return value it got from `:ssh` (i.e. `"{:error, reason}"`, and so on). No attempt to ease the pain.
 
 You can pass the option `:separate_streams` to get separated stdout and stderr. Like this:
 
@@ -57,6 +57,11 @@ To use alternative keys you should save them somewhere on disk and then set the 
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
 
 ## Changelog
+
+### 1.2
+
+* Uniform `raise` behaviour on `:ssh` errors.
+* Document and test `:ssh` error handling
 
 ### 1.1
 
