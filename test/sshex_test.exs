@@ -30,6 +30,41 @@ defmodule SSHExTest do
     assert SSHEx.run(:mocked, 'somecommand') == {:ok, mocked_data, status}
   end
 
+  test "`:ssh` error message when `run`" do
+    send self(), {:ssh_cm, :mocked, {:error, :reason}}
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.run(:mocked, 'somecommand')
+    end
+  end
+
+  test "`:ssh` error message when `cmd!`" do
+    send self(), {:ssh_cm, :mocked, {:error, :reason}}
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.cmd!(:mocked, 'somecommand')
+    end
+  end
+
+  test "`:ssh_connection.exec` failure raises" do
+    :meck.expect(:ssh_connection, :exec, fn(_,_,_,_) -> :failure end)
+    assert_raise RuntimeError, "Could not exec 'somecommand'!", fn ->
+      SSHEx.run(:mocked, 'somecommand')
+    end
+  end
+
+  test "`:ssh_connection.exec` error raises" do
+    :meck.expect(:ssh_connection, :exec, fn(_,_,_,_) -> {:error, :reason} end)
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.run(:mocked, 'somecommand')
+    end
+  end
+
+  test "`:ssh_connection.session_channel` error raises" do
+    :meck.expect(:ssh_connection, :session_channel, fn(_,_) -> {:error, :reason} end)
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.run(:mocked, 'somecommand')
+    end
+  end
+
   test "Separate streams" do
     # send mocked response sequence to the mailbox
     mocked_stdout = "output"

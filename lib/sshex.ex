@@ -54,8 +54,8 @@ defmodule SSHEx do
   defp open_channel(conn, channel_timeout) do
     res = :ssh_connection.session_channel(conn, channel_timeout)
     case res do
-      { :error, reason } -> raise reason
       { :ok, channel } -> channel
+      any -> raise inspect(any)
     end
   end
 
@@ -64,8 +64,9 @@ defmodule SSHEx do
   defp exec(channel, conn, cmd, exec_timeout) do
     res = :ssh_connection.exec(conn, channel, cmd, exec_timeout)
     case res do
-      :failure -> raise "Could not exec #{cmd}!"
+      :failure -> raise "Could not exec '#{cmd}'!"
       :success -> channel
+      any -> raise inspect(any)
     end
   end
 
@@ -73,7 +74,7 @@ defmodule SSHEx do
   #
   #  TODO: For 2.0 release, join every optional argument into one big opts list
   #
-  defp get_response(channel, timeout, stdout \\ "", stderr \\ "", status \\ nil, closed \\ false, opts \\ []) do
+  defp get_response(channel, timeout, stdout, stderr, status, closed, opts) do
 
     # if we got status and closed, then we are done
     parsed = case {status, closed} do
@@ -104,7 +105,7 @@ defmodule SSHEx do
       {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
       {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
       {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
-      x -> x
+      any -> raise inspect(any)
     end
   end
 
