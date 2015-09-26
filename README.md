@@ -58,6 +58,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
+### master
+
+* Stop using global mocks (i.e. `:meck`)
+
 ### 1.2
 
 * Uniform `raise` behaviour on `:ssh` errors.

@@ -41,5 +41,28 @@ defmodule SSHEx.Helpers do
     end
   end
 
+  @doc """
+    Apply given defaults to given Keyword. Returns merged Keyword.
+
+    The inverse of `Keyword.merge`, best suited to apply some defaults in a
+    chainable way.
+
+    Ex:
+      kw = gather_data
+        |> transform_data
+        |> H.defaults(k1: 1234, k2: 5768)
+        |> here_i_need_defaults
+
+    Instead of:
+      kw1 = gather_data
+        |> transform_data
+      kw = [k1: 1234, k2: 5768]
+        |> Keyword.merge(kw1)
+        |> here_i_need_defaults
+
+  """
+  def defaults(args, defs) do
+    defs |> Keyword.merge(args)
+  end
 
 end

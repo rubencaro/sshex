@@ -1,3 +1,5 @@
+require SSHEx.Helpers, as: H
+
 defmodule SSHEx do
 
   @moduledoc """
@@ -24,9 +26,12 @@ defmodule SSHEx do
     TODO: For 2.0 release, join every optional argument into one big opts list
   """
   def run(conn, cmd, channel_timeout \\ 5000, exec_timeout \\ 5000, opts \\ []) do
+    opts = opts
+      |> H.defaults(connection_module: :ssh_connection)
+
     conn
-    |> open_channel(channel_timeout)
-    |> exec(conn, cmd, exec_timeout)
+    |> open_channel(channel_timeout, opts[:connection_module])
+    |> exec(conn, cmd, exec_timeout, opts[:connection_module])
     |> get_response(exec_timeout, "", "", nil, false, opts)
   end
 
@@ -51,8 +56,8 @@ defmodule SSHEx do
 
   # Try to get the channel, raise if it's not working
   #
-  defp open_channel(conn, channel_timeout) do
-    res = :ssh_connection.session_channel(conn, channel_timeout)
+  defp open_channel(conn, channel_timeout, connection_module) do
+    res = connection_module.session_channel(conn, channel_timeout)
     case res do
       { :ok, channel } -> channel
       any -> raise inspect(any)
@@ -61,8 +66,8 @@ defmodule SSHEx do
 
   # Execute the given command, raise if it fails
   #
-  defp exec(channel, conn, cmd, exec_timeout) do
-    res = :ssh_connection.exec(conn, channel, cmd, exec_timeout)
+  defp exec(channel, conn, cmd, exec_timeout, connection_module) do
+    res = connection_module.exec(conn, channel, cmd, exec_timeout)
     case res do
       :failure -> raise "Could not exec '#{cmd}'!"
       :success -> channel

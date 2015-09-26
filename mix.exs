@@ -20,7 +20,5 @@ defmodule SSHEx.Mixfile do
      links: %{github: "https://github.com/rubencaro/sshex"}]
   end
 
-  defp deps do
-    [ {:meck, "~> 0.8.3", only: [:dev,:test]} ]
-  end
+  defp deps, do: []
 end
