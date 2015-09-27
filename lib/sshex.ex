@@ -26,12 +26,11 @@ defmodule SSHEx do
     TODO: For 2.0 release, join every optional argument into one big opts list
   """
   def run(conn, cmd, channel_timeout \\ 5000, exec_timeout \\ 5000, opts \\ []) do
-    opts = opts
-      |> H.defaults(connection_module: :ssh_connection)
-
+    opts = opts |> H.defaults(connection_module: :ssh_connection,
+                              channel_timeout: channel_timeout,
+                              exec_timeout: exec_timeout)
     conn
-    |> open_channel(channel_timeout, opts[:connection_module])
-    |> exec(conn, cmd, exec_timeout, opts[:connection_module])
+    |> open_channel_and_exec(cmd, opts)
     |> get_response(exec_timeout, "", "", nil, false, opts)
   end
 
@@ -62,11 +61,7 @@ defmodule SSHEx do
                               channel_timeout: 5000,
                               exec_timeout: 5000)
 
-    start_fun = fn->
-      conn
-      |> open_channel(opts[:channel_timeout], opts[:connection_module])
-      |> exec(conn, cmd, opts[:exec_timeout], opts[:connection_module])
-    end
+    start_fun = fn-> open_channel_and_exec(conn,cmd,opts) end
 
     next_fun = fn(channel)->
       if channel == :halt_next do # halt if asked
@@ -88,6 +83,16 @@ defmodule SSHEx do
     after_fun = fn(_)-> end
 
     Stream.resource start_fun, next_fun, after_fun
+  end
+
+  # Try to get the channel, and then execute the given command.
+  # Just a DRY to call internal `open_channel/3` and `exec/5`.
+  # Raise if anything fails.
+  #
+  defp open_channel_and_exec(conn, cmd, opts) do
+    conn
+    |> open_channel(opts[:channel_timeout], opts[:connection_module])
+    |> exec(conn, cmd, opts[:exec_timeout], opts[:connection_module])
   end
 
   # Try to get the channel, raise if it's not working
