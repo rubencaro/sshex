@@ -54,6 +54,36 @@ defmodule SSHEx do
     end
   end
 
+  @doc """
+    TODO: docs
+  """
+  def stream(conn, cmd, opts \\ []) do
+    opts = opts |> H.defaults(connection_module: :ssh_connection,
+                              channel_timeout: 5000,
+                              exec_timeout: 5000)
+
+    start_fun = fn->
+      conn
+      |> open_channel(opts[:channel_timeout], opts[:connection_module])
+      |> exec(conn, cmd, opts[:exec_timeout], opts[:connection_module])
+    end
+
+    next_fun = fn(channel)->
+      res = get_response(channel, opts[:exec_timeout], "", "", nil, false, opts)
+      case res do
+        {:data, line} = x -> {[x], channel}
+        {:data, stdout, stderr} = x -> {[x], channel}
+        {:status, status} = x -> {[x], channel}
+        {:error, reason} = x -> {[x], channel}
+        _ -> {:halt, channel}
+      end
+    end
+
+    after_fun = fn(_)-> end
+
+    Stream.resource start_fun, next_fun, after_fun
+  end
+
   # Try to get the channel, raise if it's not working
   #
   defp open_channel(conn, channel_timeout, connection_module) do
