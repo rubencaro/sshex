@@ -69,13 +69,19 @@ defmodule SSHEx do
     end
 
     next_fun = fn(channel)->
-      res = get_response(channel, opts[:exec_timeout], "", "", nil, false, opts)
-      case res do
-        {:data, line} = x -> {[x], channel}
-        {:data, stdout, stderr} = x -> {[x], channel}
-        {:status, status} = x -> {[x], channel}
-        {:error, reason} = x -> {[x], channel}
-        _ -> {:halt, channel}
+      if channel == :halt_next do # halt if asked
+        {:halt, :bogus}
+      else
+        res = receive_and_parse_response(channel, opts[:exec_timeout])
+        case res do
+          {:loop, {_, _, "", "", nil, false}} -> {[], channel}
+          {:loop, {_, _,  x, "", nil, false}} -> {[ {:stdout,x} ], channel}
+          {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
+          {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
+          {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
+          {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+          any -> raise inspect(any)
+        end
       end
     end
 
@@ -126,7 +132,8 @@ defmodule SSHEx do
   end
 
   # Parse ugly response
-  defp receive_and_parse_response(chn, tout, stdout, stderr, status, closed) do
+  #
+  defp receive_and_parse_response(chn, tout, stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
@@ -145,6 +152,7 @@ defmodule SSHEx do
   end
 
   # Format response for given raw response and given options
+  #
   defp format_response(raw, opts) do
     case opts[:separate_streams] do
       true -> raw

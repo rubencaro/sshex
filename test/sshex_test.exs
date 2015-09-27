@@ -67,16 +67,20 @@ defmodule SSHExTest do
   test "Stream long response" do
     lines = ["some", "long", "output", "sequence"]
     send_long_sequence(lines)
+    response = Enum.map(lines,&( {:stdout,&1} )) ++ [
+      {:stderr,"mockederror"},
+      {:status, 0}
+    ]
 
     stream = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
-    res = Enum.take_while(stream, fn(x)-> {:ok,_,_} = x end)
-    assert Enum.map(res, fn({:ok,x,_})-> x end) == lines
+    assert Enum.to_list(stream) == response
   end
 
   defp send_long_sequence(lines) do
     for l <- lines do
       send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, l}}
     end
+    send self(), {:ssh_cm, :mocked, {:data, :mocked, 1, "mockederror"}}
     send self(), {:ssh_cm, :mocked, {:eof, :mocked}}
     send self(), {:ssh_cm, :mocked, {:exit_status, :mocked, 0}}
     send self(), {:ssh_cm, :mocked, {:closed, :mocked}}
