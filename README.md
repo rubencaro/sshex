@@ -10,7 +10,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Use
 
-Just add `{:sshex, "1.2.0"}` to your deps on `mix.exs`.
+Just add `{:sshex, "1.3.0"}` to your deps on `mix.exs`.
 
 Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `:ssh.connect/4` like this:
 
@@ -79,9 +79,9 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
-### master
+### 1.3
 
-* Support streaming
+* Support streaming via `stream/3`
 * Stop using global mocks (i.e. `:meck`)
 
 ### 1.2
