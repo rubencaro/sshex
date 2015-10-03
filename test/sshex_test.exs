@@ -76,10 +76,23 @@ defmodule SSHExTest do
     assert Enum.to_list(stream) == response
   end
 
-  defp send_long_sequence(lines) do
+  test "`:ssh` error message when `stream`" do
+    lines = ["some", "long", "output", "sequence"]
+    send_long_sequence(lines, error: true)
+
+    stream = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      Enum.to_list(stream)
+    end
+  end
+
+  defp send_long_sequence(lines, opts \\ []) do
     for l <- lines do
       send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, l}}
     end
+
+    if opts[:error], do: send(self(), {:ssh_cm, :mocked, {:error, :reason}})
+
     send self(), {:ssh_cm, :mocked, {:data, :mocked, 1, "mockederror"}}
     send self(), {:ssh_cm, :mocked, {:eof, :mocked}}
     send self(), {:ssh_cm, :mocked, {:exit_status, :mocked, 0}}

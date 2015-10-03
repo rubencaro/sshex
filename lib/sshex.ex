@@ -54,7 +54,47 @@ defmodule SSHEx do
   end
 
   @doc """
-    TODO: docs
+    Gets an open SSH connection reference (as returned by `:ssh.connect/4`),
+    and a command to execute.
+
+    Optionally it gets a timeout for the underlying SSH channel opening,
+    and for the execution itself.
+
+    Supported options are:
+
+    * `:channel_timeout`
+    * `:exec_timeout`
+    * `:connection_module`
+
+    Any failure related with the SSH connection itself is raised without mercy (by now).
+
+    Returns a `Stream` that you can use to lazily retrieve each line of output
+    for the given command.
+
+    Each iteration of the stream will read from the underlying connection and
+    return one of these:
+
+    * `{:stdout,row}`
+    * `{:stderr,row}`
+    * `{:status,status}`
+
+    Keep in mind that rows may not be received in order.
+
+    Ex:
+    ```
+      {:ok, conn} = :ssh.connect('123.123.123.123', 22,
+                    [ {:user,'myuser'}, {:silently_accept_hosts, true} ], 5000)
+
+      str = SSHEx.stream conn, 'somecommand'
+
+      Stream.each(str, fn(x)->
+        case x do
+          {:stdout,row}    -> process_output(row)
+          {:stderr,row}    -> process_error(row)
+          {:status,status} -> process_exit_status(status)
+        end
+      end)
+    ```
   """
   def stream(conn, cmd, opts \\ []) do
     opts = opts |> H.defaults(connection_module: :ssh_connection,
@@ -65,7 +105,7 @@ defmodule SSHEx do
 
     next_fun = fn(channel)->
       if channel == :halt_next do # halt if asked
-        {:halt, :bogus}
+        {:halt, 'Halt requested on previous iteration'}
       else
         res = receive_and_parse_response(channel, opts[:exec_timeout])
         case res do
@@ -74,7 +114,8 @@ defmodule SSHEx do
           {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
           {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
           {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
-          {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+          # TODO: wait until 2.0 to really handle errors
+          # {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
           any -> raise inspect(any)
         end
       end

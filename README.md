@@ -33,8 +33,6 @@ This is meant to run commands which you don't care about the return code. `cmd!/
     {:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
 ```
 
-If `:ssh` returns any error (i.e. `{:error, reason}`, `:failure`, etc.), `SSHEx` will raise a `RuntimeError` with the message containing an `inspect` of whichever return value it got from `:ssh` (i.e. `"{:error, reason}"`, and so on). No attempt to ease the pain.
-
 You can pass the option `:separate_streams` to get separated stdout and stderr. Like this:
 
 ```elixir
@@ -43,6 +41,29 @@ You can pass the option `:separate_streams` to get separated stdout and stderr. 
 ```
 
 You will be reusing the same SSH connection all over.
+
+
+## Streaming
+
+You can use `SSHEx` to run some command and create a [`Stream`](http://elixir-lang.org/docs/stable/elixir/Stream.html), so you can lazily process an arbitrarily long output as it arrives. Internally `Stream.resource/3` is used to create the `Stream`, and every response from `:ssh` is emitted so it can be easily matched with a simple `case`.
+
+You just have to use `stream/3` like this:
+
+```elixir
+  str = SSHEx.stream conn, 'somecommand'
+
+  Stream.each(str, fn(x)->
+    case x do
+      {:stdout,row}    -> process_output(row)
+      {:stderr,row}    -> process_error(row)
+      {:status,status} -> process_exit_status(status)
+    end
+  end)
+```
+
+## Error handling
+
+If `:ssh` returns any error (i.e. `{:error, reason}`, `:failure`, etc.), `SSHEx` will raise a `RuntimeError` with the message containing an `inspect` of whichever return value it got from `:ssh` (i.e. `"{:error, reason}"`, and so on). No attempt to ease the pain by now (will see in 2.0).
 
 
 ## Alternative keys
@@ -60,6 +81,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ### master
 
+* Support streaming
 * Stop using global mocks (i.e. `:meck`)
 
 ### 1.2
