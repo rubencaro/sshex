@@ -80,6 +80,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
+### 1.3.1
+
+* Fix Elixir version requested. Use >= 1.0 now.
+
 ### 1.3
 
 * Support streaming via `stream/3`
