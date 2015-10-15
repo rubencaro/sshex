@@ -10,7 +10,7 @@ defmodule SSHEx.Helpers do
   def env(app, key, default), do: Application.get_env(app, key, default)
 
   @doc """
-    Spit to stdout any passed variable, with location information.
+    Spit to output any passed variable, with location information.
   """
   defmacro spit(obj \\ "", inspect_opts \\ []) do
     quote do
@@ -25,6 +25,8 @@ defmodule SSHEx.Helpers do
       # chain = chain ++ [:yellow, "\n\n#{inspect Process.info(self)}"]
 
       (chain ++ ["\n\n", :reset]) |> IO.ANSI.format(true) |> IO.puts
+
+      unquote(obj)
     end
   end
 
