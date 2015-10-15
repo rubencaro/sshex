@@ -35,9 +35,11 @@ defmodule SSHEx do
     opts = opts |> H.defaults(connection_module: :ssh_connection,
                               channel_timeout: 5000,
                               exec_timeout: 5000)
-    conn
-    |> open_channel_and_exec(cmd, opts)
-    |> get_response(opts[:exec_timeout], "", "", nil, false, opts)
+
+    case open_channel_and_exec(conn, cmd, opts) do
+      {:error, r} -> {:error, r}
+      chn -> get_response(chn, opts[:exec_timeout], "", "", nil, false, opts)
+    end
   end
 
   @doc """
@@ -116,21 +118,11 @@ defmodule SSHEx do
 
     start_fun = fn-> open_channel_and_exec(conn,cmd,opts) end
 
-    next_fun = fn(channel)->
-      if channel == :halt_next do # halt if asked
-        {:halt, 'Halt requested on previous iteration'}
-      else
-        res = receive_and_parse_response(channel, opts[:exec_timeout])
-        case res do
-          {:loop, {_, _, "", "", nil, false}} -> {[], channel}
-          {:loop, {_, _,  x, "", nil, false}} -> {[ {:stdout,x} ], channel}
-          {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
-          {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
-          {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
-          # TODO: wait until 2.0 to really handle errors
-          # {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
-          any -> raise inspect(any)
-        end
+    next_fun = fn(input)->
+      case input do
+        :halt_next -> {:halt, 'Halt requested on previous iteration'}
+        {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+        chn -> do_stream_next(chn, opts)
       end
     end
 
@@ -139,34 +131,43 @@ defmodule SSHEx do
     Stream.resource start_fun, next_fun, after_fun
   end
 
+  # Actual mapping of `:ssh` responses into streamable chunks
+  #
+  defp do_stream_next(channel, opts) do
+    case receive_and_parse_response(channel, opts[:exec_timeout]) do
+      {:loop, {_, _, "", "", nil, false}} -> {[], channel}
+      {:loop, {_, _,  x, "", nil, false}} -> {[ {:stdout,x} ], channel}
+      {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
+      {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
+      {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
+      {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+    end
+  end
+
   # Try to get the channel, and then execute the given command.
   # Just a DRY to call internal `open_channel/3` and `exec/5`.
   # Raise if anything fails.
   #
   defp open_channel_and_exec(conn, cmd, opts) do
-    conn
-    |> open_channel(opts[:channel_timeout], opts[:connection_module])
-    |> exec(conn, cmd, opts[:exec_timeout], opts[:connection_module])
+    case open_channel(conn, opts[:channel_timeout], opts[:connection_module]) do
+      {:error, r} -> {:error, r}
+      {:ok, chn} -> exec(chn, conn, cmd, opts[:exec_timeout], opts[:connection_module])
+    end
   end
 
   # Try to get the channel, raise if it's not working
   #
   defp open_channel(conn, channel_timeout, connection_module) do
-    res = connection_module.session_channel(conn, channel_timeout)
-    case res do
-      { :ok, channel } -> channel
-      any -> raise inspect(any)
-    end
+    connection_module.session_channel(conn, channel_timeout)
   end
 
   # Execute the given command, raise if it fails
   #
   defp exec(channel, conn, cmd, exec_timeout, connection_module) do
-    res = connection_module.exec(conn, channel, cmd, exec_timeout)
-    case res do
-      :failure -> raise "Could not exec '#{cmd}'!"
+    case connection_module.exec(conn, channel, cmd, exec_timeout) do
       :success -> channel
-      any -> raise inspect(any)
+      :failure -> {:error, "Could not exec '#{cmd}'!"}
+      any -> any  # {:error, reason}
     end
   end
 
@@ -194,7 +195,7 @@ defmodule SSHEx do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
-      tout -> { :error, :taimaut }
+      tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
     end
 
     case response do
@@ -204,7 +205,7 @@ defmodule SSHEx do
       {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
       {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
       {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
-      any -> raise inspect(any)
+      any -> any # {:error, reason}
     end
   end
 

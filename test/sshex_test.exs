@@ -1,3 +1,5 @@
+require SSHEx.Helpers, as: H
+
 defmodule SSHExTest do
   use ExUnit.Case
 
@@ -20,36 +22,16 @@ defmodule SSHExTest do
     assert SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock) == {:ok, mocked_data, status}
   end
 
-  test "`:ssh` error message when `run`" do
-    send self(), {:ssh_cm, :mocked, {:error, :reason}}
-    assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock)
-    end
-  end
+  test "Stream long response" do
+    lines = ["some", "long", "output", "sequence"]
+    send_long_sequence(lines)
+    response = Enum.map(lines,&( {:stdout,&1} )) ++ [
+      {:stderr,"mockederror"},
+      {:status, 0}
+    ]
 
-  test "`:ssh` error message when `cmd!`" do
-    send self(), {:ssh_cm, :mocked, {:error, :reason}}
-    assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock)
-    end
-  end
-
-  test "`:ssh_connection.exec` failure raises" do
-    assert_raise RuntimeError, "Could not exec 'somecommand'!", fn ->
-      SSHEx.run(:mocked, 'somecommand', connection_module: ExecFailureMock)
-    end
-  end
-
-  test "`:ssh_connection.exec` error raises" do
-    assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', connection_module: ExecErrorMock)
-    end
-  end
-
-  test "`:ssh_connection.session_channel` error raises" do
-    assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', connection_module: SessionChannelErrorMock)
-    end
+    str = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
+    assert Enum.to_list(str) == response
   end
 
   test "Separate streams" do
@@ -59,30 +41,61 @@ defmodule SSHExTest do
     send_separated_sequence mocked_stdout, mocked_stderr
 
     # actually test it
-    res = SSHEx.run :mocked, 'failingcommand', connection_module: AllOKMock,
-                                                        separate_streams: true
+    res = SSHEx.run :mocked, 'failingcommand', connection_module: AllOKMock, separate_streams: true
     assert res == {:ok, mocked_stdout, mocked_stderr, 2}
   end
 
-  test "Stream long response" do
-    lines = ["some", "long", "output", "sequence"]
-    send_long_sequence(lines)
-    response = Enum.map(lines,&( {:stdout,&1} )) ++ [
-      {:stderr,"mockederror"},
-      {:status, 0}
-    ]
-
-    stream = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
-    assert Enum.to_list(stream) == response
+  test "`:ssh` error message when `run`" do
+    send self(), {:ssh_cm, :mocked, {:error, :reason}}
+    assert SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock) == {:error, :reason}
   end
 
-  test "`:ssh` error message when `stream`" do
+  test "`:ssh` error message when `cmd!`" do
+    send self(), {:ssh_cm, :mocked, {:error, :reason}}
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock)
+    end
+  end
+
+  test "`:ssh` error message while `stream`" do
     lines = ["some", "long", "output", "sequence"]
     send_long_sequence(lines, error: true)
+    response = Enum.map(lines,&( {:stdout,&1} )) ++ [ {:error, :reason} ]
 
-    stream = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
+    str = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
+    assert Enum.to_list(str) == response
+  end
+
+  test "`:ssh_connection.exec` failure" do
+    assert SSHEx.run(:mocked, 'somecommand', connection_module: ExecFailureMock) == {:error, "Could not exec 'somecommand'!"}
+
+    str = SSHEx.stream(:mocked, 'somecommand', connection_module: ExecFailureMock)
+    assert Enum.to_list(str) == [error: "Could not exec 'somecommand'!"]
+
+    assert_raise RuntimeError, "{:error, \"Could not exec 'somecommand'!\"}", fn ->
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: ExecFailureMock)
+    end
+  end
+
+  test "`:ssh_connection.exec` error" do
+    assert SSHEx.run(:mocked, 'somecommand', connection_module: ExecErrorMock) == {:error, :reason}
+
+    str = SSHEx.stream(:mocked, 'somecommand', connection_module: ExecErrorMock)
+    assert Enum.to_list(str) == [error: :reason]
+
     assert_raise RuntimeError, "{:error, :reason}", fn ->
-      Enum.to_list(stream)
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: ExecErrorMock)
+    end
+  end
+
+  test "`:ssh_connection.session_channel` error" do
+    assert SSHEx.run(:mocked, 'somecommand', connection_module: SessionChannelErrorMock) == {:error, :reason}
+
+    str = SSHEx.stream(:mocked, 'somecommand', connection_module: SessionChannelErrorMock)
+    assert Enum.to_list(str) == [error: :reason]
+
+    assert_raise RuntimeError, "{:error, :reason}", fn ->
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: SessionChannelErrorMock)
     end
   end
 
