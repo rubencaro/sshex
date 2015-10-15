@@ -16,15 +16,15 @@ Just add `{:sshex, "2.0.0"}` to your deps on `mix.exs`.
 Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `:ssh.connect/4` like this:
 
 ```elixir
-    {:ok, conn} = :ssh.connect('123.123.123.123', 22,
-                    [ {:user,'myuser'}, {:silently_accept_hosts, true} ], 5000)
+{:ok, conn} = :ssh.connect('123.123.123.123', 22,
+                [ {:user,'myuser'}, {:silently_accept_hosts, true} ], 5000)
 ```
 
 Then you can use the acquired `conn` with the `cmd!/4` helper like this:
 
 ```elixir
-    SSHEx.cmd! conn, 'mkdir -p /path/to/newdir'
-    res = SSHEx.cmd! conn, 'ls /some/path'
+SSHEx.cmd! conn, 'mkdir -p /path/to/newdir'
+res = SSHEx.cmd! conn, 'ls /some/path'
 ```
 
 This is meant to run commands which you don't care about the return code. `cmd!/3` will return the output of the command only, and __will raise any errors__. If you want to check the status code, and control errors too, you can use `run/3` like this:
