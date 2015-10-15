@@ -3,7 +3,7 @@ defmodule SSHEx.Mixfile do
 
   def project do
     [app: :sshex,
-     version: "1.3.1",
+     version: "2.0.0",
      elixir: ">= 1.0.0",
      package: package,
      deps: deps,

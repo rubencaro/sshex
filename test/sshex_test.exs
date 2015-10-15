@@ -1,5 +1,3 @@
-require SSHEx.Helpers, as: H
-
 defmodule SSHExTest do
   use ExUnit.Case
 

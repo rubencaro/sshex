@@ -17,8 +17,6 @@ defmodule SSHEx do
     Optionally it gets a `channel_timeout` for the underlying SSH channel opening,
     and an `exec_timeout` for the execution itself. Both default to 5000ms.
 
-    Any failure related with the SSH connection itself is raised without mercy.
-
     Returns `{:ok,data,status}` on success. Otherwise `{:error, details}`.
 
     If `:separate_streams` is `true` then the response on success looks like `{:ok,stdout,stderr,status}`.
@@ -28,6 +26,7 @@ defmodule SSHEx do
     ```
     {:ok, _, 0} = SSHEx.run conn, 'rm -fr /something/to/delete'
     {:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
+    {:error, reason} = SSHEx.run failing_conn, 'ls /some/path'
     {:ok, stdout, stderr, 2} = SSHEx.run conn, 'ls /nonexisting/path', separate_streams: true
     ```
   """
@@ -51,7 +50,7 @@ defmodule SSHEx do
     Returns `response` only if `run/3` return value matches `{:ok, response, _}`,
     or returns `{stdout, stderr}` if `run/3` returns `{:ok, stdout, stderr, _}`.
     Raises any `{:error, details}` returned by `run/3`. Note return status from
-    `cmd` is ignored.
+    `cmd` is also ignored.
 
     Ex:
 
@@ -72,16 +71,7 @@ defmodule SSHEx do
     Gets an open SSH connection reference (as returned by `:ssh.connect/4`),
     and a command to execute.
 
-    Optionally it gets a timeout for the underlying SSH channel opening,
-    and for the execution itself.
-
-    Supported options are:
-
-    * `:channel_timeout`
-    * `:exec_timeout`
-    * `:connection_module`
-
-    Any failure related with the SSH connection itself is raised without mercy (by now).
+    See `run/3` for options.
 
     Returns a `Stream` that you can use to lazily retrieve each line of output
     for the given command.
@@ -92,6 +82,7 @@ defmodule SSHEx do
     * `{:stdout,row}`
     * `{:stderr,row}`
     * `{:status,status}`
+    * `{:error,reason}`
 
     Keep in mind that rows may not be received in order.
 
@@ -104,9 +95,10 @@ defmodule SSHEx do
 
       Stream.each(str, fn(x)->
         case x do
-          {:stdout,row}    -> process_output(row)
-          {:stderr,row}    -> process_error(row)
+          {:stdout,row}    -> process_stdout(row)
+          {:stderr,row}    -> process_stderr(row)
           {:status,status} -> process_exit_status(status)
+          {:error,reason}  -> process_error(row)
         end
       end)
     ```
@@ -121,7 +113,7 @@ defmodule SSHEx do
     next_fun = fn(input)->
       case input do
         :halt_next -> {:halt, 'Halt requested on previous iteration'}
-        {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+        {:error, _} = x -> {[x], :halt_next} # emit error, then halt
         chn -> do_stream_next(chn, opts)
       end
     end
@@ -140,13 +132,12 @@ defmodule SSHEx do
       {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
       {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
       {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
-      {:error, reason} = x -> {[x], :halt_next} # emit error, then halt
+      {:error, _} = x -> {[x], :halt_next} # emit error, then halt
     end
   end
 
   # Try to get the channel, and then execute the given command.
   # Just a DRY to call internal `open_channel/3` and `exec/5`.
-  # Raise if anything fails.
   #
   defp open_channel_and_exec(conn, cmd, opts) do
     case open_channel(conn, opts[:channel_timeout], opts[:connection_module]) do
@@ -155,13 +146,13 @@ defmodule SSHEx do
     end
   end
 
-  # Try to get the channel, raise if it's not working
+  # Try to get the channel
   #
   defp open_channel(conn, channel_timeout, connection_module) do
     connection_module.session_channel(conn, channel_timeout)
   end
 
-  # Execute the given command, raise if it fails
+  # Execute the given command. Map every error to `{:error,reason}`.
   #
   defp exec(channel, conn, cmd, exec_timeout, connection_module) do
     case connection_module.exec(conn, channel, cmd, exec_timeout) do
