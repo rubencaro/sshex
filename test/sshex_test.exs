@@ -8,7 +8,7 @@ defmodule SSHExTest do
     send_regular_sequence mocked_data, status
 
     # actually test it
-    assert SSHEx.cmd!(:mocked, 'somecommand', 5000, 5000, connection_module: AllOKMock) == mocked_data
+    assert SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock) == mocked_data
   end
 
   test "Plain `run`" do
@@ -17,38 +17,38 @@ defmodule SSHExTest do
     status = 123 # any would do
     send_regular_sequence mocked_data, status
 
-    assert SSHEx.run(:mocked, 'somecommand', 5000, 5000, connection_module: AllOKMock) == {:ok, mocked_data, status}
+    assert SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock) == {:ok, mocked_data, status}
   end
 
   test "`:ssh` error message when `run`" do
     send self(), {:ssh_cm, :mocked, {:error, :reason}}
     assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', 5000, 5000, connection_module: AllOKMock)
+      SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock)
     end
   end
 
   test "`:ssh` error message when `cmd!`" do
     send self(), {:ssh_cm, :mocked, {:error, :reason}}
     assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.cmd!(:mocked, 'somecommand', 5000, 5000, connection_module: AllOKMock)
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock)
     end
   end
 
   test "`:ssh_connection.exec` failure raises" do
     assert_raise RuntimeError, "Could not exec 'somecommand'!", fn ->
-      SSHEx.run(:mocked, 'somecommand', 5000, 5000, connection_module: ExecFailureMock)
+      SSHEx.run(:mocked, 'somecommand', connection_module: ExecFailureMock)
     end
   end
 
   test "`:ssh_connection.exec` error raises" do
     assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', 5000, 5000, connection_module: ExecErrorMock)
+      SSHEx.run(:mocked, 'somecommand', connection_module: ExecErrorMock)
     end
   end
 
   test "`:ssh_connection.session_channel` error raises" do
     assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.run(:mocked, 'somecommand', 5000, 5000, connection_module: SessionChannelErrorMock)
+      SSHEx.run(:mocked, 'somecommand', connection_module: SessionChannelErrorMock)
     end
   end
 
@@ -59,8 +59,8 @@ defmodule SSHExTest do
     send_separated_sequence mocked_stdout, mocked_stderr
 
     # actually test it
-    res = SSHEx.run :mocked, 'failingcommand',
-                      5000, 5000, [connection_module: AllOKMock, separate_streams: true]
+    res = SSHEx.run :mocked, 'failingcommand', connection_module: AllOKMock,
+                                                        separate_streams: true
     assert res == {:ok, mocked_stdout, mocked_stderr, 2}
   end
 

@@ -14,8 +14,8 @@ defmodule SSHEx do
     Gets an open SSH connection reference (as returned by `:ssh.connect/4`),
     and a command to execute.
 
-    Optionally it gets a timeout for the underlying SSH channel opening,
-    and for the execution itself.
+    Optionally it gets a `channel_timeout` for the underlying SSH channel opening,
+    and an `exec_timeout` for the execution itself. Both default to 5000ms.
 
     Any failure related with the SSH connection itself is raised without mercy.
 
@@ -23,30 +23,43 @@ defmodule SSHEx do
 
     If `:separate_streams` is `true` then the response on success looks like `{:ok,stdout,stderr,status}`.
 
-    TODO: For 2.0 release, join every optional argument into one big opts list
+    Ex:
+
+    ```
+    {:ok, _, 0} = SSHEx.run conn, 'rm -fr /something/to/delete'
+    {:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
+    {:ok, stdout, stderr, 2} = SSHEx.run conn, 'ls /nonexisting/path', separate_streams: true
+    ```
   """
-  def run(conn, cmd, channel_timeout \\ 5000, exec_timeout \\ 5000, opts \\ []) do
+  def run(conn, cmd, opts \\ []) do
     opts = opts |> H.defaults(connection_module: :ssh_connection,
-                              channel_timeout: channel_timeout,
-                              exec_timeout: exec_timeout)
+                              channel_timeout: 5000,
+                              exec_timeout: 5000)
     conn
     |> open_channel_and_exec(cmd, opts)
-    |> get_response(exec_timeout, "", "", nil, false, opts)
+    |> get_response(opts[:exec_timeout], "", "", nil, false, opts)
   end
 
   @doc """
-    Convenience function to run `run/5` and get output string straight from it,
+    Convenience function to run `run/3` and get output string straight from it,
     like `:os.cmd/1`.
 
-    Returns `response` only if `run/5` return value matches `{:ok, response, _}`,
-    or returns `{stdout, stderr}` if `run/5` returns `{:ok, stdout, stderr, _}`.
-    Raises any `{:error, details}` returned by `run/5`. Note return status from
+    See `run/3` for options.
+
+    Returns `response` only if `run/3` return value matches `{:ok, response, _}`,
+    or returns `{stdout, stderr}` if `run/3` returns `{:ok, stdout, stderr, _}`.
+    Raises any `{:error, details}` returned by `run/3`. Note return status from
     `cmd` is ignored.
 
-    TODO: For 2.0 release, join every optional argument into one big opts list
+    Ex:
+
+    ```
+        SSHEx.cmd! conn, 'mkdir -p /path/to/newdir'
+        res = SSHEx.cmd! conn, 'ls /some/path'
+    ```
   """
-  def cmd!(conn, cmd, channel_timeout \\ 5000, exec_timeout \\ 5000, opts \\ []) do
-    case run(conn, cmd, channel_timeout, exec_timeout, opts) do
+  def cmd!(conn, cmd, opts \\ []) do
+    case run(conn, cmd, opts) do
       {:ok, response, _} -> response
       {:ok, stdout, stderr, _} -> {stdout, stderr}
       any -> raise inspect(any)
@@ -159,8 +172,6 @@ defmodule SSHEx do
 
   # Loop until all data is received. Return read data and the exit_status.
   #
-  #  TODO: For 2.0 release, join every optional argument into one big opts list
-  #
   defp get_response(channel, timeout, stdout, stderr, status, closed, opts) do
 
     # if we got status and closed, then we are done
@@ -171,8 +182,8 @@ defmodule SSHEx do
 
     # tail recursion
     case parsed do
-      {:loop, {channel, timeout, stdout, stderr, status, closed}} -> # loop again, still things missing
-        get_response(channel, timeout, stdout, stderr, status, closed, opts)
+      {:loop, {ch, tout, out, err, st, cl}} -> # loop again, still things missing
+        get_response(ch, tout, out, err, st, cl, opts)
       x -> x
     end
   end

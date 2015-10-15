@@ -75,10 +75,13 @@ To use alternative keys you should save them somewhere on disk and then set the 
 ## TODOs
 
 * Remove every `raise`, get clean controlled `{:error, reason}` responses
-* Put every optional parameter under a unique Keyword list
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
 
 ## Changelog
+
+### master
+
+* Put every optional parameter under a unique Keyword list
 
 ### 1.3.1
 
