@@ -74,6 +74,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
+### master
+
+* Avoid some Elixir 1.2.0 warnings
+
 ### 2.0.0
 
 Backwards incompatible changes:

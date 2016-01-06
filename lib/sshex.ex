@@ -118,7 +118,7 @@ defmodule SSHEx do
       end
     end
 
-    after_fun = fn(_)-> end
+    after_fun = fn(_)-> :ok end
 
     Stream.resource start_fun, next_fun, after_fun
   end
