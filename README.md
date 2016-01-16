@@ -11,7 +11,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Use
 
-Just add `{:sshex, "2.0.0"}` to your deps on `mix.exs`.
+Just add `{:sshex, "2.0.1"}` to your deps on `mix.exs`.
 
 Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `:ssh.connect/4` like this:
 
@@ -74,7 +74,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
-### master
+### 2.0.1
 
 * Avoid some Elixir 1.2.0 warnings
 * Adjust the SSH flow control window to handle long outputs (fixes #4).
