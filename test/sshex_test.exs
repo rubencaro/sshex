@@ -130,19 +130,23 @@ end
 defmodule AllOKMock do
   def session_channel(_,_), do: {:ok, :mocked}
   def exec(_,_,_,_), do: :success
+  def adjust_window(_,_,_), do: :ok
 end
 
 defmodule ExecFailureMock do
   def session_channel(_,_), do: {:ok, :mocked}
   def exec(_,_,_,_), do: :failure
+  def adjust_window(_,_,_), do: :ok
 end
 
 defmodule ExecErrorMock do
   def session_channel(_,_), do: {:ok, :mocked}
   def exec(_,_,_,_), do: {:error, :reason}
+  def adjust_window(_,_,_), do: :ok
 end
 
 defmodule SessionChannelErrorMock do
   def session_channel(_,_), do: {:error, :reason}
   def exec(_,_,_,_), do: :success
+  def adjust_window(_,_,_), do: :ok
 end

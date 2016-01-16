@@ -37,7 +37,7 @@ defmodule SSHEx do
 
     case open_channel_and_exec(conn, cmd, opts) do
       {:error, r} -> {:error, r}
-      chn -> get_response(chn, opts[:exec_timeout], "", "", nil, false, opts)
+      chn -> get_response(conn, chn, opts[:exec_timeout], "", "", nil, false, opts)
     end
   end
 
@@ -114,7 +114,7 @@ defmodule SSHEx do
       case input do
         :halt_next -> {:halt, 'Halt requested on previous iteration'}
         {:error, _} = x -> {[x], :halt_next} # emit error, then halt
-        chn -> do_stream_next(chn, opts)
+        chn -> do_stream_next(conn, chn, opts)
       end
     end
 
@@ -125,8 +125,8 @@ defmodule SSHEx do
 
   # Actual mapping of `:ssh` responses into streamable chunks
   #
-  defp do_stream_next(channel, opts) do
-    case receive_and_parse_response(channel, opts[:exec_timeout]) do
+  defp do_stream_next(conn, channel, opts) do
+    case receive_and_parse_response(conn, channel, opts[:connection_module], opts[:exec_timeout]) do
       {:loop, {_, _, "", "", nil, false}} -> {[], channel}
       {:loop, {_, _,  x, "", nil, false}} -> {[ {:stdout,x} ], channel}
       {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
@@ -164,29 +164,37 @@ defmodule SSHEx do
 
   # Loop until all data is received. Return read data and the exit_status.
   #
-  defp get_response(channel, timeout, stdout, stderr, status, closed, opts) do
+  defp get_response(conn, channel, timeout, stdout, stderr, status, closed, opts) do
 
     # if we got status and closed, then we are done
     parsed = case {status, closed} do
       {st, true} when not is_nil(st) -> format_response({:ok, stdout, stderr, status}, opts)
-      _ -> receive_and_parse_response(channel, timeout, stdout, stderr, status, closed)
+      _ -> receive_and_parse_response(conn, channel, opts[:connection_module],
+                                      timeout, stdout, stderr, status, closed)
     end
 
     # tail recursion
     case parsed do
       {:loop, {ch, tout, out, err, st, cl}} -> # loop again, still things missing
-        get_response(ch, tout, out, err, st, cl, opts)
+        get_response(conn, ch, tout, out, err, st, cl, opts)
       x -> x
     end
   end
 
   # Parse ugly response
   #
-  defp receive_and_parse_response(chn, tout, stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
+  defp receive_and_parse_response(conn, chn, connection_module, tout,
+                                  stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
     response = receive do
       {:ssh_cm, _, res} -> res
     after
       tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
+    end
+
+    # call adjust_window to allow more data income, but only when needed
+    case response do
+      {:data, ^chn, _, new_data} -> connection_module.adjust_window(conn, chn, byte_size(new_data))
+      _ -> :ok
     end
 
     case response do

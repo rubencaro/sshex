@@ -77,6 +77,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 ### master
 
 * Avoid some Elixir 1.2.0 warnings
+* Adjust the SSH flow control window to handle long outputs (fixes #4).
 
 ### 2.0.0
 
