@@ -1,6 +1,15 @@
 defmodule SSHExTest do
   use ExUnit.Case
 
+  test "connect" do
+
+    opts = [ip: '123.123.123.123',
+            user: 'myuser',
+            ssh_module: AllOKMock]
+
+    assert SSHEx.connect(opts) == {:ok, :mocked}
+  end
+
   test "Plain `cmd!`" do
     # send mocked response sequence to the mailbox
     mocked_data = "output"
@@ -128,6 +137,7 @@ defmodule SSHExTest do
 end
 
 defmodule AllOKMock do
+  def connect(_,_,_,_), do: {:ok, :mocked}
   def session_channel(_,_), do: {:ok, :mocked}
   def exec(_,_,_,_), do: :success
   def adjust_window(_,_,_), do: :ok

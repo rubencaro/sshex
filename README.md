@@ -11,13 +11,12 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Use
 
-Just add `{:sshex, "2.0.1"}` to your deps on `mix.exs`.
+Just add `{:sshex, "2.1.0"}` to your deps on `mix.exs`.
 
-Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `:ssh.connect/4` like this:
+Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `SSHEx.connect/1` like this:
 
 ```elixir
-{:ok, conn} = :ssh.connect('123.123.123.123', 22,
-                [ {:user,'myuser'}, {:silently_accept_hosts, true} ], 5000)
+{:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser'
 ```
 
 Then you can use the acquired `conn` with the `cmd!/4` helper like this:
@@ -65,7 +64,7 @@ end)
 
 ## Alternative keys
 
-To use alternative keys you should save them somewhere on disk and then set the `:user_dir` option for `:ssh.connect/4`. See [ssh library docs](http://www.erlang.org/doc/man/ssh.html) for more options.
+To use alternative keys you should save them somewhere on disk and then set the `:user_dir` option for `SSHEx.connect/4`. See [ssh library docs](http://www.erlang.org/doc/man/ssh.html) for more options.
 
 
 ## TODOs
@@ -73,6 +72,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
 
 ## Changelog
+
+### 2.1.0
+
+* Add `connect/1` to improve testability by easier mocking
 
 ### 2.0.1
 

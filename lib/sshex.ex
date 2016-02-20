@@ -7,8 +7,35 @@ defmodule SSHEx do
     [ssh library](http://www.erlang.org/doc/man/ssh.html).
 
     :ssh.start # just in case
-    {:ok, conn} = :ssh.connect('123.123.123.123',22,[ {:user,'myuser'},{:silently_accept_hosts, true} ], 5000)
+    {:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser'
   """
+
+  @doc """
+    Establish a connection with given options. Uses `:ssh.connect/4` for that.
+
+    Recognised options are `ip` (mandatory), `port` and `negotiation_timeout`.
+    Any other option is passed to `:ssh.connect/4` as is
+    (so be careful if you use binaries and `:ssh` expects char lists...).
+    See [its reference](http://erlang.org/doc/man/ssh.html#connect-4) for available options.
+
+    Default values exist for some options, which are:
+    * `port`: 22
+    * `negotiation_timeout`: 5000
+    * `silently_accept_hosts`: `true`
+
+    Returns `{:ok, connection}`, or `{:error, reason}`.
+  """
+  def connect(opts) do
+    opts = opts |> H.defaults(port: 22,
+                              negotiation_timeout: 5000,
+                              silently_accept_hosts: true,
+                              ssh_module: :ssh)
+    own_keys = [:ip, :port, :negotiation_timeout, :ssh_module]
+
+    ssh_opts = opts |> Enum.filter(fn({k,_})-> not (k in own_keys) end)
+
+    opts[:ssh_module].connect(opts[:ip], opts[:port], ssh_opts, opts[:negotiation_timeout])
+  end
 
   @doc """
     Gets an open SSH connection reference (as returned by `:ssh.connect/4`),
