@@ -13,7 +13,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 Just add `{:sshex, "2.1.0"}` to your deps on `mix.exs`.
 
-Then assuming `:ssh` application is already started (hence it is listed on deps), you should acquire an SSH connection using `SSHEx.connect/1` like this:
+Then assuming `:ssh` application is already started with `:ssh.start` (hence it is listed on deps), you should acquire an SSH connection using `SSHEx.connect/1` like this:
 
 ```elixir
 {:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser'
