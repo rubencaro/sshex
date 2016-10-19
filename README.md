@@ -73,6 +73,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
+### master
+
+* Close channel after stream
+
 ### 2.1.0
 
 * Add `connect/1` to improve testability by easier mocking
