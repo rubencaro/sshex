@@ -145,7 +145,9 @@ defmodule SSHEx do
       end
     end
 
-    after_fun = fn(_)-> :ok end
+    after_fun = fn(channel) ->
+      :ok = opts[:connection_module].close(conn, channel)
+    end
 
     Stream.resource start_fun, next_fun, after_fun
   end
