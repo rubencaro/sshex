@@ -11,3 +11,4 @@ erl_crash.dump
 /config/prod.exs
 
 /rel
+/doc
