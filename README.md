@@ -52,7 +52,7 @@ You just have to use `stream/3` like this:
 ```elixir
 str = SSHEx.stream conn, 'somecommand'
 
-Stream.each(str, fn(x)->
+Enum.each(str, fn(x)->
   case x do
     {:stdout,row}    -> process_stdout(row)
     {:stderr,row}    -> process_stderr(row)
