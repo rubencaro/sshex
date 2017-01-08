@@ -5,8 +5,8 @@ defmodule SSHEx.Mixfile do
     [app: :sshex,
      version: "2.1.1",
      elixir: ">= 1.0.0",
-     package: package,
-     deps: deps,
+     package: package(),
+     deps: deps(),
      description: "Simple SSH helpers for Elixir" ]
   end
 

@@ -73,6 +73,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
+### master
+
+* Remove Elixir 1.4 warnings
+
 ### 2.1.1
 
 * Close channel after stream
