@@ -73,7 +73,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
-### master
+### 2.1.2
 
 * Remove Elixir 1.4 warnings
 
