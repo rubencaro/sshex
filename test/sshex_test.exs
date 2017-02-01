@@ -20,6 +20,16 @@ defmodule SSHExTest do
     assert SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock) == mocked_data
   end
 
+  test "String `cmd!`" do
+    # send mocked response sequence to the mailbox
+    mocked_data = "output"
+    status = 123 # any would do
+    send_regular_sequence mocked_data, status
+
+    # actually test it
+    assert SSHEx.cmd!(:mocked, "somecommand", connection_module: AllOKMock) == mocked_data
+  end
+
   test "Plain `run`" do
     # send mocked response sequence to the mailbox
     mocked_data = "output"
@@ -28,6 +38,15 @@ defmodule SSHExTest do
 
     assert SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock) == {:ok, mocked_data, status}
   end
+
+  test "String `run`" do
+    # send mocked response sequence to the mailbox
+    mocked_data = "output"
+    status = 123 # any would do
+    send_regular_sequence mocked_data, status
+
+    assert SSHEx.run(:mocked, "somecommand", connection_module: AllOKMock) == {:ok, mocked_data, status}
+  end  
 
   test "Stream long response" do
     lines = ["some", "long", "output", "sequence"]
