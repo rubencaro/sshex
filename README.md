@@ -9,14 +9,21 @@ Library to unify helpers already used on several applications. It uses low level
 
 The only purpose of these helpers is to avoid repetitive patterns seen when working with SSH from Elixir. It doesn't mean to hide anything from the venerable code underneath. If there's an ugly crash from `:ssh` it will come back as `{:error, reason}`.
 
-## Use
+## Instalation
 
-Just add `{:sshex, "2.1.1"}` to your deps on `mix.exs`.
+Just add `{:sshex, "2.1.1"}` to your deps on `mix.exs` and run `mix deps.get`
+
+## Use
 
 Then assuming `:ssh` application is already started with `:ssh.start` (hence it is listed on deps), you should acquire an SSH connection using `SSHEx.connect/1` like this:
 
+1.You can use `ssh-copy-id myuser@123.123.123.123.123` to copy ssh key to remote host and then connect using this line:
 ```elixir
 {:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser'
+```
+2.You can supply the password:
+```elixir
+{:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser', password: 'your-password'
 ```
 
 Then you can use the acquired `conn` with the `cmd!/4` helper like this:
