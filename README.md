@@ -83,6 +83,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 ### master
 
 * Add ability to specify ssh key and known hosts
+* Make it Elixir string friendly
 
 ### 2.1.2
 
