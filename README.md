@@ -11,7 +11,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Installation
 
-Just add `{:sshex, "2.1.1"}` to your deps on `mix.exs` and run `mix deps.get`
+Just add `{:sshex, "2.2.0"}` to your deps on `mix.exs` and run `mix deps.get`
 
 ## Use
 
@@ -80,7 +80,7 @@ To use alternative keys you should save them somewhere on disk and then set the 
 
 ## Changelog
 
-### master
+### 2.2.0
 
 * Add ability to specify ssh key and known hosts
 * Make it Elixir string friendly
