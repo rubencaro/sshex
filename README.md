@@ -9,7 +9,7 @@ Library to unify helpers already used on several applications. It uses low level
 
 The only purpose of these helpers is to avoid repetitive patterns seen when working with SSH from Elixir. It doesn't mean to hide anything from the venerable code underneath. If there's an ugly crash from `:ssh` it will come back as `{:error, reason}`.
 
-## Instalation
+## Installation
 
 Just add `{:sshex, "2.1.1"}` to your deps on `mix.exs` and run `mix deps.get`
 
