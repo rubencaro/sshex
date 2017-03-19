@@ -26,10 +26,14 @@ defmodule SSHEx do
     Returns `{:ok, connection}`, or `{:error, reason}`.
   """
   def connect(opts) do
-    opts = opts |> H.defaults(port: 22,
-                              negotiation_timeout: 5000,
-                              silently_accept_hosts: true,
-                              ssh_module: :ssh)
+    opts = 
+      opts 
+      |> H.convert_values 
+      |> H.defaults(port: 22,
+                    negotiation_timeout: 5000,
+                    silently_accept_hosts: true,
+                    ssh_module: :ssh)
+
     own_keys = [:ip, :port, :negotiation_timeout, :ssh_module]
 
     ssh_opts = opts |> Enum.filter(fn({k,_})-> not (k in own_keys) end)
@@ -58,10 +62,13 @@ defmodule SSHEx do
     ```
   """
   def run(conn, cmd, opts \\ []) do
-    opts = opts |> H.defaults(connection_module: :ssh_connection,
-                              channel_timeout: 5000,
-                              exec_timeout: 5000)
-
+    opts = 
+      opts 
+      |> H.convert_values 
+      |> H.defaults(connection_module: :ssh_connection,
+                    channel_timeout: 5000,
+                    exec_timeout: 5000)
+    cmd = H.convert_value(cmd)
     case open_channel_and_exec(conn, cmd, opts) do
       {:error, r} -> {:error, r}
       chn -> get_response(conn, chn, opts[:exec_timeout], "", "", nil, false, opts)
@@ -131,10 +138,14 @@ defmodule SSHEx do
     ```
   """
   def stream(conn, cmd, opts \\ []) do
-    opts = opts |> H.defaults(connection_module: :ssh_connection,
-                              channel_timeout: 5000,
-                              exec_timeout: 5000)
+    opts = 
+      opts 
+      |> H.convert_values
+      |> H.defaults(connection_module: :ssh_connection,
+                    channel_timeout: 5000,
+                    exec_timeout: 5000)
 
+    cmd = H.convert_value(cmd)
     start_fun = fn-> open_channel_and_exec(conn,cmd,opts) end
 
     next_fun = fn(input)->

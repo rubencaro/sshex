@@ -67,4 +67,14 @@ defmodule SSHEx.Helpers do
     defs |> Keyword.merge(args)
   end
 
+  def convert_values(args) do
+    Enum.map(args, fn {k, v} -> {k, convert_value(v)} end)
+  end
+
+  def convert_value(v) when is_binary(v) do
+    String.to_charlist(v)
+  end
+
+  def convert_value(v), do: v
+
 end
