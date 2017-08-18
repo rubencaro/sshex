@@ -11,7 +11,7 @@ The only purpose of these helpers is to avoid repetitive patterns seen when work
 
 ## Installation
 
-Just add `{:sshex, "2.2.0"}` to your deps on `mix.exs` and run `mix deps.get`
+Just add `{:sshex, "2.2.1"}` to your deps on `mix.exs` and run `mix deps.get`
 
 ## Use
 
@@ -61,10 +61,10 @@ str = SSHEx.stream conn, 'somecommand'
 
 Enum.each(str, fn(x)->
   case x do
-    {:stdout,row}    -> process_stdout(row)
-    {:stderr,row}    -> process_stderr(row)
-    {:status,status} -> process_exit_status(status)
-    {:error,reason}  -> process_error(reason)
+    {:stdout, row}    -> process_stdout(row)
+    {:stderr, row}    -> process_stderr(row)
+    {:status, status} -> process_exit_status(status)
+    {:error, reason}  -> process_error(reason)
   end
 end)
 ```
@@ -79,6 +79,10 @@ To use alternative keys you should save them somewhere on disk and then set the 
 * Add tunnelling helpers [*](http://erlang.org/pipermail/erlang-questions/2014-June/079481.html)
 
 ## Changelog
+
+### 2.2.1
+
+* Add new possible exit_signal message format
 
 ### 2.2.0
 
