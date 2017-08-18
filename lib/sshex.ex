@@ -26,9 +26,9 @@ defmodule SSHEx do
     Returns `{:ok, connection}`, or `{:error, reason}`.
   """
   def connect(opts) do
-    opts = 
-      opts 
-      |> H.convert_values 
+    opts =
+      opts
+      |> H.convert_values
       |> H.defaults(port: 22,
                     negotiation_timeout: 5000,
                     silently_accept_hosts: true,
@@ -62,9 +62,9 @@ defmodule SSHEx do
     ```
   """
   def run(conn, cmd, opts \\ []) do
-    opts = 
-      opts 
-      |> H.convert_values 
+    opts =
+      opts
+      |> H.convert_values
       |> H.defaults(connection_module: :ssh_connection,
                     channel_timeout: 5000,
                     exec_timeout: 5000)
@@ -138,8 +138,8 @@ defmodule SSHEx do
     ```
   """
   def stream(conn, cmd, opts \\ []) do
-    opts = 
-      opts 
+    opts =
+      opts
       |> H.convert_values
       |> H.defaults(connection_module: :ssh_connection,
                     channel_timeout: 5000,
@@ -242,6 +242,7 @@ defmodule SSHEx do
       {:data, ^chn, 0, new_data} ->       {:loop, {chn, tout, stdout <> new_data, stderr, status, closed}}
       {:eof, ^chn} ->                     {:loop, {chn, tout, stdout, stderr, status, closed}}
       {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
+      {:exit_signal, ^chn, _, _, _} ->    {:loop, {chn, tout, stdout, stderr, status, closed}}
       {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
       {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
       any -> any # {:error, reason}
