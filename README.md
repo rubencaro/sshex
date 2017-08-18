@@ -64,7 +64,7 @@ Enum.each(str, fn(x)->
     {:stdout,row}    -> process_stdout(row)
     {:stderr,row}    -> process_stderr(row)
     {:status,status} -> process_exit_status(status)
-    {:error,reason}  -> process_error(row)
+    {:error,reason}  -> process_error(reason)
   end
 end)
 ```
