@@ -10,24 +10,37 @@ defmodule SSHEx.Helpers do
   def env(app, key, default), do: Application.get_env(app, key, default)
 
   @doc """
-    Spit to output any passed variable, with location information.
+  Spit to output any passed variable, with location information.
+  If `sample` option is given, it should be a float between 0.0 and 1.0.
+  Output will be produced randomly with that probability.
+  Given `opts` will be fed straight into `inspect`. Any option accepted by it should work.
   """
-  defmacro spit(obj \\ "", inspect_opts \\ []) do
+  defmacro spit(obj \\ "", opts \\ []) do
     quote do
-      %{file: file, line: line} = __ENV__
-      name = Process.info(self)[:registered_name]
-      chain = [ :bright, :red, "\n\n#{file}:#{line}",
-                :normal, "\n     #{inspect self}", :green," #{name}"]
+      opts = unquote(opts)
+      obj = unquote(obj)
+      opts = Keyword.put(opts, :env, __ENV__)
 
-      msg = inspect(unquote(obj),unquote(inspect_opts))
-      if String.length(msg) > 2, do: chain = chain ++ [:red, "\n\n#{msg}"]
-
-      # chain = chain ++ [:yellow, "\n\n#{inspect Process.info(self)}"]
-
-      (chain ++ ["\n\n", :reset]) |> IO.ANSI.format(true) |> IO.puts
-
-      unquote(obj)
+      SSHEx.Helpers.maybe_spit(obj, opts, opts[:sample])
+      obj  # chainable
     end
+  end
+
+  @doc false
+  def maybe_spit(obj, opts, nil), do: do_spit(obj, opts)
+  def maybe_spit(obj, opts, prob) when is_float(prob) do
+    if :rand.uniform <= prob, do: do_spit(obj, opts)
+  end
+
+  defp do_spit(obj, opts) do
+    %{file: file, line: line} = opts[:env]
+    name = Process.info(self())[:registered_name]
+    chain = [ :bright, :red, "\n\n#{file}:#{line}", :normal, "\n     #{inspect self()}", :green," #{name}"]
+
+    msg = inspect(obj, opts)
+    chain = chain ++ [:red, "\n\n#{msg}"]
+
+    (chain ++ ["\n\n", :reset]) |> IO.ANSI.format(true) |> IO.puts
   end
 
   @doc """
