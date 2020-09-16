@@ -84,11 +84,12 @@ defmodule SSHExTest do
   end
 
   test "`:ssh` error message while `stream`" do
+    conn = :mocked
     lines = ["some", "long", "output", "sequence"]
-    send_long_sequence(lines, error: true)
+    send_long_sequence(lines, conn, error: true)
     response = Enum.map(lines,&( {:stdout,&1} )) ++ [ {:error, :reason} ]
 
-    str = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
+    str = SSHEx.stream conn, 'somecommand', connection_module: AllOKMock
     assert Enum.to_list(str) == response
   end
 
@@ -125,18 +126,37 @@ defmodule SSHExTest do
     end
   end
 
-  defp send_long_sequence(lines, opts \\ []) do
+  test "receive only from the responsible connection" do
+    ["conn1", "sequence"]
+    |> send_long_sequence()
+
+    lines = ["conn2", "sequence"]
+    send_long_sequence(lines, :mocked2, [])
+
+    {:ok, mocked_data, _sdterr, 0} = SSHEx.run(
+      :mocked2,
+      'somecommand',
+      connection_module: AllOKMock2,
+      separate_streams: true
+    )
+    assert mocked_data == Enum.join(lines)
+  end
+
+  defp send_long_sequence(lines, conn \\ :mocked, opts \\ [])
+
+  defp send_long_sequence(lines, conn, opts) do
     for l <- lines do
-      send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, l}}
+      send self(), {:ssh_cm, conn, {:data, conn, 0, l}}
     end
 
-    if opts[:error], do: send(self(), {:ssh_cm, :mocked, {:error, :reason}})
+    if opts[:error], do: send(self(), {:ssh_cm, conn, {:error, :reason}})
 
-    send self(), {:ssh_cm, :mocked, {:data, :mocked, 1, "mockederror"}}
-    send self(), {:ssh_cm, :mocked, {:eof, :mocked}}
-    send self(), {:ssh_cm, :mocked, {:exit_status, :mocked, 0}}
-    send self(), {:ssh_cm, :mocked, {:closed, :mocked}}
+    send self(), {:ssh_cm, conn, {:data, conn, 1, "mockederror"}}
+    send self(), {:ssh_cm, conn, {:eof, conn}}
+    send self(), {:ssh_cm, conn, {:exit_status, conn, 0}}
+    send self(), {:ssh_cm, conn, {:closed, conn}}
   end
+
 
   defp send_regular_sequence(mocked_data, status) do
     send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, mocked_data}}
@@ -158,6 +178,14 @@ end
 defmodule AllOKMock do
   def connect(_,_,_,_), do: {:ok, :mocked}
   def session_channel(_,_), do: {:ok, :mocked}
+  def exec(_,_,_,_), do: :success
+  def adjust_window(_,_,_), do: :ok
+  def close(_, _), do: :ok
+end
+
+defmodule AllOKMock2 do
+  def connect(_,_,_,_), do: {:ok, :mocked2}
+  def session_channel(_,_), do: {:ok, :mocked2}
   def exec(_,_,_,_), do: :success
   def adjust_window(_,_,_), do: :ok
   def close(_, _), do: :ok
