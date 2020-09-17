@@ -226,7 +226,7 @@ defmodule SSHEx do
   defp receive_and_parse_response(conn, chn, connection_module, tout,
                                   stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
     response = receive do
-      {:ssh_cm, _, res} -> res
+      {:ssh_cm, ^conn, res} -> res
     after
       tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
     end

@@ -2,10 +2,9 @@ defmodule SSHExTest do
   use ExUnit.Case
 
   test "connect" do
-
     opts = [ip: '123.123.123.123',
-            user: 'myuser',
-            ssh_module: AllOKMock]
+      user: 'myuser',
+      ssh_module: AllOKMock]
 
     assert SSHEx.connect(opts) == {:ok, :mocked}
   end
@@ -46,7 +45,7 @@ defmodule SSHExTest do
     send_regular_sequence mocked_data, status
 
     assert SSHEx.run(:mocked, "somecommand", connection_module: AllOKMock) == {:ok, mocked_data, status}
-  end  
+  end
 
   test "Stream long response" do
     lines = ["some", "long", "output", "sequence"]
@@ -125,6 +124,18 @@ defmodule SSHExTest do
     end
   end
 
+  test "receive only from given connection" do
+    # send mocked response sequence to the mailbox for 2 different connections
+    status = 123 # any would do
+    mocked_data1 = "output1"
+    send_regular_sequence mocked_data1, status, conn: :mocked1
+    mocked_data2 = "output2"
+    send_regular_sequence mocked_data2, status, conn: :mocked2
+
+    # check that we only receive for the one we want
+    assert SSHEx.cmd!(:mocked2, 'somecommand', connection_module: AllOKMock) == mocked_data2
+  end
+
   defp send_long_sequence(lines, opts \\ []) do
     for l <- lines do
       send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, l}}
@@ -138,11 +149,12 @@ defmodule SSHExTest do
     send self(), {:ssh_cm, :mocked, {:closed, :mocked}}
   end
 
-  defp send_regular_sequence(mocked_data, status) do
-    send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, mocked_data}}
-    send self(), {:ssh_cm, :mocked, {:eof, :mocked}}
-    send self(), {:ssh_cm, :mocked, {:exit_status, :mocked, status}}
-    send self(), {:ssh_cm, :mocked, {:closed, :mocked}}
+  defp send_regular_sequence(mocked_data, status, opts \\ []) do
+    conn = opts[:conn] || :mocked
+    send self(), {:ssh_cm, conn, {:data, conn, 0, mocked_data}}
+    send self(), {:ssh_cm, conn, {:eof, conn}}
+    send self(), {:ssh_cm, conn, {:exit_status, conn, status}}
+    send self(), {:ssh_cm, conn, {:closed, conn}}
   end
 
   defp send_separated_sequence(mocked_stdout, mocked_stderr) do
@@ -157,7 +169,7 @@ end
 
 defmodule AllOKMock do
   def connect(_,_,_,_), do: {:ok, :mocked}
-  def session_channel(_,_), do: {:ok, :mocked}
+  def session_channel(conn,_), do: {:ok, conn}
   def exec(_,_,_,_), do: :success
   def adjust_window(_,_,_), do: :ok
   def close(_, _), do: :ok
