@@ -1,3 +1,13 @@
+----
+# Looking for new maintainer/s.
+
+This library has been stable for years. It basically requires keeping it alive by updating Elixir/Erlang version numbers.
+
+I'm afraid there will be no more releases until there's a new maintainer.
+
+Don't hesitate to contact me if you're interested!
+----
+
 # SSHEx
 [![Build Status](https://travis-ci.org/rubencaro/sshex.svg?branch=master)](https://travis-ci.org/rubencaro/sshex)
 [![Hex Version](http://img.shields.io/hexpm/v/sshex.svg?style=flat)](https://hex.pm/packages/sshex)
