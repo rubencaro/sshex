@@ -225,27 +225,35 @@ defmodule SSHEx do
   #
   defp receive_and_parse_response(conn, chn, connection_module, tout,
                                   stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
-    response = receive do
-      {:ssh_cm, ^conn, res} -> res
-    after
-      tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
-    end
+    receive do
+      {:ssh_cm, ^conn, {:data, ^chn, type_code, new_data}} ->
+        connection_module.adjust_window(conn, chn, byte_size(new_data))
 
-    # call adjust_window to allow more data income, but only when needed
-    case response do
-      {:data, ^chn, _, new_data} -> connection_module.adjust_window(conn, chn, byte_size(new_data))
-      _ -> :ok
-    end
+        {new_stdout, new_stderr} =
+          case type_code do
+            0 -> {stdout <> new_data, stderr}
+            1 -> {stdout, stderr <> new_data}
+          end
 
-    case response do
-      {:data, ^chn, 1, new_data} ->       {:loop, {chn, tout, stdout, stderr <> new_data, status, closed}}
-      {:data, ^chn, 0, new_data} ->       {:loop, {chn, tout, stdout <> new_data, stderr, status, closed}}
-      {:eof, ^chn} ->                     {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_signal, ^chn, _, _, _} ->    {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
-      {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
-      any -> any # {:error, reason}
+        {:loop, {chn, tout, new_stdout, new_stderr, status, closed}}
+
+      {:ssh_cm, ^conn, {:eof, ^chn}} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:ssh_cm, ^conn, {:exit_signal, ^chn, _, _}} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:ssh_cm, ^conn, {:exit_signal, ^chn, _, _, _}} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:ssh_cm, ^conn, {:exit_status, ^chn, new_status}} ->
+        {:loop, {chn, tout, stdout, stderr, new_status, closed}}
+
+      {:ssh_cm, ^conn, {:closed, ^chn}} ->
+        {:loop, {chn, tout, stdout, stderr, status, true}}
+
+      after
+        tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
     end
   end
 

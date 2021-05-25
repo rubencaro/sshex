@@ -70,25 +70,10 @@ defmodule SSHExTest do
     assert res == {:ok, mocked_stdout, mocked_stderr, 2}
   end
 
-  test "`:ssh` error message when `run`" do
-    send self(), {:ssh_cm, :mocked, {:error, :reason}}
-    assert SSHEx.run(:mocked, 'somecommand', connection_module: AllOKMock) == {:error, :reason}
-  end
-
   test "`:ssh` error message when `cmd!`" do
-    send self(), {:ssh_cm, :mocked, {:error, :reason}}
-    assert_raise RuntimeError, "{:error, :reason}", fn ->
-      SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock)
+    assert_raise RuntimeError, "{:error, \"Timeout. Did not receive data for 0ms.\"}", fn ->
+      SSHEx.cmd!(:mocked, 'somecommand', connection_module: AllOKMock, exec_timeout: 0)
     end
-  end
-
-  test "`:ssh` error message while `stream`" do
-    lines = ["some", "long", "output", "sequence"]
-    send_long_sequence(lines, error: true)
-    response = Enum.map(lines,&( {:stdout,&1} )) ++ [ {:error, :reason} ]
-
-    str = SSHEx.stream :mocked, 'somecommand', connection_module: AllOKMock
-    assert Enum.to_list(str) == response
   end
 
   test "`:ssh_connection.exec` failure" do
@@ -136,12 +121,10 @@ defmodule SSHExTest do
     assert SSHEx.cmd!(:mocked2, 'somecommand', connection_module: AllOKMock) == mocked_data2
   end
 
-  defp send_long_sequence(lines, opts \\ []) do
+  defp send_long_sequence(lines) do
     for l <- lines do
       send self(), {:ssh_cm, :mocked, {:data, :mocked, 0, l}}
     end
-
-    if opts[:error], do: send(self(), {:ssh_cm, :mocked, {:error, :reason}})
 
     send self(), {:ssh_cm, :mocked, {:data, :mocked, 1, "mockederror"}}
     send self(), {:ssh_cm, :mocked, {:eof, :mocked}}
