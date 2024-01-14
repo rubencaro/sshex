@@ -11,7 +11,7 @@ defmodule SSHEx.Mixfile do
   end
 
   def application do
-    [ applications: [:ssh] ]
+    [ extra_applications: [:ssh] ]
   end
 
   defp package do
