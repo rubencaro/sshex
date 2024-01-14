@@ -38,9 +38,9 @@ defmodule SSHEx.ConfigurableClientKeys do
         opts
         |> known_hosts
         |> IO.read(:all)
-        |> :public_key.ssh_decode(:known_hosts)
+        |> :ssh_file.decode(:known_hosts)
         |> (fn decoded -> decoded ++ [{key, [{:hostnames, [hostname]}]}] end).()
-        |> :public_key.ssh_encode(:known_hosts)
+        |> :ssh_file.encode(:known_hosts)
         |> (fn encoded -> IO.write(known_hosts(opts), encoded) end).()
 
       _ ->
@@ -65,7 +65,7 @@ defmodule SSHEx.ConfigurableClientKeys do
     opts
     |> known_hosts
     |> IO.read(:all)
-    |> :public_key.ssh_decode(:known_hosts)
+    |> :ssh_file.decode(:known_hosts)
     |> has_fingerprint(key, hostname)
   end
 
