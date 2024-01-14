@@ -6,7 +6,7 @@ defmodule SSHEx.Helpers do
     Convenience to get environment bits. Avoid all that repetitive
     `Application.get_env( :myapp, :blah, :blah)` noise.
   """
-  def env(key, default \\ nil), do: env(Mix.Project.get!.project[:app], key, default)
+  def env(key, default \\ nil), do: env(Mix.Project.get!().project[:app], key, default)
   def env(app, key, default), do: Application.get_env(app, key, default)
 
   @doc """
@@ -22,25 +22,36 @@ defmodule SSHEx.Helpers do
       opts = Keyword.put(opts, :env, __ENV__)
 
       SSHEx.Helpers.maybe_spit(obj, opts, opts[:sample])
-      obj  # chainable
+      # chainable
+      obj
     end
   end
 
   @doc false
   def maybe_spit(obj, opts, nil), do: do_spit(obj, opts)
+
   def maybe_spit(obj, opts, prob) when is_float(prob) do
-    if :rand.uniform <= prob, do: do_spit(obj, opts)
+    if :rand.uniform() <= prob, do: do_spit(obj, opts)
   end
 
   defp do_spit(obj, opts) do
     %{file: file, line: line} = opts[:env]
     name = Process.info(self())[:registered_name]
-    chain = [ :bright, :red, "\n\n#{file}:#{line}", :normal, "\n     #{inspect self()}", :green," #{name}"]
+
+    chain = [
+      :bright,
+      :red,
+      "\n\n#{file}:#{line}",
+      :normal,
+      "\n     #{inspect(self())}",
+      :green,
+      " #{name}"
+    ]
 
     msg = inspect(obj, opts)
     chain = chain ++ [:red, "\n\n#{msg}"]
 
-    (chain ++ ["\n\n", :reset]) |> IO.ANSI.format(true) |> IO.puts
+    (chain ++ ["\n\n", :reset]) |> IO.ANSI.format(true) |> IO.puts()
   end
 
   @doc """
@@ -49,9 +60,11 @@ defmodule SSHEx.Helpers do
   defmacro todo(msg \\ "") do
     quote do
       %{file: file, line: line} = __ENV__
-      [ :yellow, "\nTODO: #{file}:#{line} #{unquote(msg)}\n", :reset]
+
+      [:yellow, "\nTODO: #{file}:#{line} #{unquote(msg)}\n", :reset]
       |> IO.ANSI.format(true)
-      |> IO.puts
+      |> IO.puts()
+
       :todo
     end
   end
@@ -89,5 +102,4 @@ defmodule SSHEx.Helpers do
   end
 
   def convert_value(v), do: v
-
 end
