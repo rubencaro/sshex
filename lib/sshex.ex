@@ -1,7 +1,6 @@
 require SSHEx.Helpers, as: H
 
 defmodule SSHEx do
-
   @moduledoc """
     Module to deal with SSH connections. It uses low level erlang
     [ssh library](http://www.erlang.org/doc/man/ssh.html).
@@ -28,15 +27,17 @@ defmodule SSHEx do
   def connect(opts) do
     opts =
       opts
-      |> H.convert_values
-      |> H.defaults(port: 22,
-                    negotiation_timeout: 5000,
-                    silently_accept_hosts: true,
-                    ssh_module: :ssh)
+      |> H.convert_values()
+      |> H.defaults(
+        port: 22,
+        negotiation_timeout: 5000,
+        silently_accept_hosts: true,
+        ssh_module: :ssh
+      )
 
     own_keys = [:ip, :port, :negotiation_timeout, :ssh_module]
 
-    ssh_opts = opts |> Enum.filter(fn({k,_})-> not (k in own_keys) end)
+    ssh_opts = opts |> Enum.filter(fn {k, _} -> k not in own_keys end)
 
     opts[:ssh_module].connect(opts[:ip], opts[:port], ssh_opts, opts[:negotiation_timeout])
   end
@@ -64,11 +65,15 @@ defmodule SSHEx do
   def run(conn, cmd, opts \\ []) do
     opts =
       opts
-      |> H.convert_values
-      |> H.defaults(connection_module: :ssh_connection,
-                    channel_timeout: 5000,
-                    exec_timeout: 5000)
+      |> H.convert_values()
+      |> H.defaults(
+        connection_module: :ssh_connection,
+        channel_timeout: 5000,
+        exec_timeout: 5000
+      )
+
     cmd = H.convert_value(cmd)
+
     case open_channel_and_exec(conn, cmd, opts) do
       {:error, r} -> {:error, r}
       chn -> get_response(conn, chn, opts[:exec_timeout], "", "", nil, false, opts)
@@ -140,27 +145,30 @@ defmodule SSHEx do
   def stream(conn, cmd, opts \\ []) do
     opts =
       opts
-      |> H.convert_values
-      |> H.defaults(connection_module: :ssh_connection,
-                    channel_timeout: 5000,
-                    exec_timeout: 5000)
+      |> H.convert_values()
+      |> H.defaults(
+        connection_module: :ssh_connection,
+        channel_timeout: 5000,
+        exec_timeout: 5000
+      )
 
     cmd = H.convert_value(cmd)
-    start_fun = fn-> open_channel_and_exec(conn,cmd,opts) end
+    start_fun = fn -> open_channel_and_exec(conn, cmd, opts) end
 
-    next_fun = fn(input)->
+    next_fun = fn input ->
       case input do
-        :halt_next -> {:halt, 'Halt requested on previous iteration'}
-        {:error, _} = x -> {[x], :halt_next} # emit error, then halt
+        :halt_next -> {:halt, ~c"Halt requested on previous iteration"}
+        # emit error, then halt
+        {:error, _} = x -> {[x], :halt_next}
         chn -> do_stream_next(conn, chn, opts)
       end
     end
 
-    after_fun = fn(channel) ->
+    after_fun = fn channel ->
       :ok = opts[:connection_module].close(conn, channel)
     end
 
-    Stream.resource start_fun, next_fun, after_fun
+    Stream.resource(start_fun, next_fun, after_fun)
   end
 
   # Actual mapping of `:ssh` responses into streamable chunks
@@ -168,11 +176,12 @@ defmodule SSHEx do
   defp do_stream_next(conn, channel, opts) do
     case receive_and_parse_response(conn, channel, opts[:connection_module], opts[:exec_timeout]) do
       {:loop, {_, _, "", "", nil, false}} -> {[], channel}
-      {:loop, {_, _,  x, "", nil, false}} -> {[ {:stdout,x} ], channel}
-      {:loop, {_, _, "",  x, nil, false}} -> {[ {:stderr,x} ], channel}
-      {:loop, {_, _, "", "",   x, false}} -> {[ {:status,x} ], channel}
-      {:loop, {_, _, "", "", nil, true }} -> {:halt, channel}
-      {:error, _} = x -> {[x], :halt_next} # emit error, then halt
+      {:loop, {_, _, x, "", nil, false}} -> {[{:stdout, x}], channel}
+      {:loop, {_, _, "", x, nil, false}} -> {[{:stderr, x}], channel}
+      {:loop, {_, _, "", "", x, false}} -> {[{:status, x}], channel}
+      {:loop, {_, _, "", "", nil, true}} -> {:halt, channel}
+      # emit error, then halt
+      {:error, _} = x -> {[x], :halt_next}
     end
   end
 
@@ -198,54 +207,97 @@ defmodule SSHEx do
     case connection_module.exec(conn, channel, cmd, exec_timeout) do
       :success -> channel
       :failure -> {:error, "Could not exec '#{cmd}'!"}
-      any -> any  # {:error, reason}
+      # {:error, reason}
+      any -> any
     end
   end
 
   # Loop until all data is received. Return read data and the exit_status.
   #
   defp get_response(conn, channel, timeout, stdout, stderr, status, closed, opts) do
-
     # if we got status and closed, then we are done
-    parsed = case {status, closed} do
-      {st, true} when not is_nil(st) -> format_response({:ok, stdout, stderr, status}, opts)
-      _ -> receive_and_parse_response(conn, channel, opts[:connection_module],
-                                      timeout, stdout, stderr, status, closed)
-    end
+    parsed =
+      case {status, closed} do
+        {st, true} when not is_nil(st) ->
+          format_response({:ok, stdout, stderr, status}, opts)
+
+        _ ->
+          receive_and_parse_response(
+            conn,
+            channel,
+            opts[:connection_module],
+            timeout,
+            stdout,
+            stderr,
+            status,
+            closed
+          )
+      end
 
     # tail recursion
     case parsed do
-      {:loop, {ch, tout, out, err, st, cl}} -> # loop again, still things missing
+      # loop again, still things missing
+      {:loop, {ch, tout, out, err, st, cl}} ->
         get_response(conn, ch, tout, out, err, st, cl, opts)
-      x -> x
+
+      x ->
+        x
     end
   end
 
   # Parse ugly response
   #
-  defp receive_and_parse_response(conn, chn, connection_module, tout,
-                                  stdout \\ "", stderr \\ "", status \\ nil, closed \\ false) do
-    response = receive do
-      {:ssh_cm, ^conn, res} -> res
-    after
-      tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
-    end
+  defp receive_and_parse_response(
+         conn,
+         chn,
+         connection_module,
+         tout,
+         stdout \\ "",
+         stderr \\ "",
+         status \\ nil,
+         closed \\ false
+       ) do
+    response =
+      receive do
+        {:ssh_cm, ^conn, res} -> res
+      after
+        tout -> {:error, "Timeout. Did not receive data for #{tout}ms."}
+      end
 
     # call adjust_window to allow more data income, but only when needed
     case response do
-      {:data, ^chn, _, new_data} -> connection_module.adjust_window(conn, chn, byte_size(new_data))
-      _ -> :ok
+      {:data, ^chn, _, new_data} ->
+        connection_module.adjust_window(conn, chn, byte_size(new_data))
+
+      _ ->
+        :ok
     end
 
     case response do
-      {:data, ^chn, 1, new_data} ->       {:loop, {chn, tout, stdout, stderr <> new_data, status, closed}}
-      {:data, ^chn, 0, new_data} ->       {:loop, {chn, tout, stdout <> new_data, stderr, status, closed}}
-      {:eof, ^chn} ->                     {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_signal, ^chn, _, _} ->       {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_signal, ^chn, _, _, _} ->    {:loop, {chn, tout, stdout, stderr, status, closed}}
-      {:exit_status, ^chn, new_status} -> {:loop, {chn, tout, stdout, stderr, new_status, closed}}
-      {:closed, ^chn} ->                  {:loop, {chn, tout, stdout, stderr, status, true}}
-      any -> any # {:error, reason}
+      {:data, ^chn, 1, new_data} ->
+        {:loop, {chn, tout, stdout, stderr <> new_data, status, closed}}
+
+      {:data, ^chn, 0, new_data} ->
+        {:loop, {chn, tout, stdout <> new_data, stderr, status, closed}}
+
+      {:eof, ^chn} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:exit_signal, ^chn, _, _} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:exit_signal, ^chn, _, _, _} ->
+        {:loop, {chn, tout, stdout, stderr, status, closed}}
+
+      {:exit_status, ^chn, new_status} ->
+        {:loop, {chn, tout, stdout, stderr, new_status, closed}}
+
+      {:closed, ^chn} ->
+        {:loop, {chn, tout, stdout, stderr, status, true}}
+
+      # {:error, reason}
+      any ->
+        any
     end
   end
 
@@ -253,10 +305,12 @@ defmodule SSHEx do
   #
   defp format_response(raw, opts) do
     case opts[:separate_streams] do
-      true -> raw
-      _ -> {:ok, stdout, stderr, status} = raw
-           {:ok, stdout <> stderr, status}
+      true ->
+        raw
+
+      _ ->
+        {:ok, stdout, stderr, status} = raw
+        {:ok, stdout <> stderr, status}
     end
   end
-
 end
