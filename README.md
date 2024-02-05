@@ -22,33 +22,35 @@ Just add `{:sshex, "2.2.1"}` to your deps on `mix.exs` and run `mix deps.get`
 Then assuming `:ssh` application is already started with `:ssh.start` (hence it is listed on deps), you should acquire an SSH connection using `SSHEx.connect/1` like this:
 
 1.You can use `ssh-copy-id myuser@123.123.123.123.123` to copy ssh key to remote host and then connect using this line:
+
 ```elixir
-{:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser'
+{:ok, conn} = SSHEx.connect(ip: '123.123.123.123', user: 'myuser')
 ```
 2.You can supply the password:
+
 ```elixir
-{:ok, conn} = SSHEx.connect ip: '123.123.123.123', user: 'myuser', password: 'your-password'
+{:ok, conn} = SSHEx.connect(ip: '123.123.123.123', user: 'myuser', password: 'your-password')
 ```
 
 Then you can use the acquired `conn` with the `cmd!/4` helper like this:
 
 ```elixir
-SSHEx.cmd! conn, 'mkdir -p /path/to/newdir'
-res = SSHEx.cmd! conn, 'ls /some/path'
+SSHEx.cmd!(conn, 'mkdir -p /path/to/newdir')
+res = SSHEx.cmd!(conn, 'ls /some/path')
 ```
 
 This is meant to run commands which you don't care about the return code. `cmd!/3` will return the output of the command only, and __will raise any errors__. If you want to check the status code, and control errors too, you can use `run/3` like this:
 
 ```elixir
-{:ok, _, 0} = SSHEx.run conn, 'rm -fr /something/to/delete'
-{:ok, res, 0} = SSHEx.run conn, 'ls /some/path'
-{:error, reason} = SSHEx.run failing_conn, 'ls /some/path'
+{:ok, _, 0} = SSHEx.run(conn, 'rm -fr /something/to/delete')
+{:ok, res, 0} = SSHEx.run(conn, 'ls /some/path')
+{:error, reason} = SSHEx.run(failing_conn, 'ls /some/path')
 ```
 
 You can pass the option `:separate_streams` to get separated stdout and stderr. Like this:
 
 ```elixir
-{:ok, stdout, stderr, 2} = SSHEx.run conn, 'ls /nonexisting/path', separate_streams: true
+{:ok, stdout, stderr, 2} = SSHEx.run(conn, 'ls /nonexisting/path', separate_streams: true)
 ```
 
 You will be reusing the same SSH connection all over.
@@ -61,9 +63,9 @@ You can use `SSHEx` to run some command and create a [`Stream`](http://elixir-la
 You just have to use `stream/3` like this:
 
 ```elixir
-str = SSHEx.stream conn, 'somecommand'
+stream = SSHEx.stream(conn, 'somecommand')
 
-Enum.each(str, fn(x)->
+Enum.each(stream, fn x ->
   case x do
     {:stdout, row}    -> process_stdout(row)
     {:stderr, row}    -> process_stderr(row)
