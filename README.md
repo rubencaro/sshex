@@ -1,11 +1,7 @@
 ----
-# Looking for new maintainer/s.
+The actively maintained version of SSHEx is now in https://github.com/witchtails/sshex
 
-This library has been stable for years. It basically requires keeping it alive by updating Elixir/Erlang version numbers.
-
-I'm afraid there will be no more releases until there's a new maintainer.
-
-Don't hesitate to contact me if you're interested!
+This repo has been archived.
 ----
 
 # SSHEx
